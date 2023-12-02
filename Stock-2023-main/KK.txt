@@ -1,0 +1,16 @@
+ //  sql.query('UPDATE borrow SET status_id=? WHERE id=?',[newStatusId,id]
+  //  ,(err,res)=>{
+  //   if (err) {
+  //     console.log("Query error: " + err);
+  //     result(err, null);
+  //     return;
+  //   }
+  //   if (res.affectedRows == 0) {
+  //     //this user id not found
+  //     result({ kind: "not_found" }, null);
+  //     //Mistake return so sent more than one response
+  //     return;
+  //   }
+  //   console.log("Updated Borrow Id: ", { id: id, ...newStatusId });
+  //   result(null, { id: id, Status_id:newStatusId });
+  //  })
