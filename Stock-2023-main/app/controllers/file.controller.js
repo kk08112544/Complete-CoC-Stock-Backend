@@ -19,14 +19,17 @@ const uploadController = async (req, res)=>{
     }
 };
 
-const displayAvatar = (req, res)=>{
-    const filename = req.params.img_url;
-    const directoryPath = __basedir + "/assets/";
-    console.log("a:" + directoryPath)
-    res.download(directoryPath + filename, filename, (err)=>{
-        if(err){
-            res.status(500).send({ message: "Could not display the file. " + err});
-        }
-    });
+const displayAvatar = (req, res) => {
+  const filename = req.params.img_url;
+  const directoryPath = __basedir + "/assets/";
+
+  const imagePath = directoryPath + filename;
+
+  res.sendFile(imagePath, (err) => {
+    if (err) {
+      res.status(500).send({ message: "Could not display the file. " + err });
+    }
+  });
 };
-module.exports = { uploadController, displayAvatar};
+
+module.exports = { uploadController, displayAvatar };

@@ -78,25 +78,41 @@ const removeOldImage = (id, result) => {
     });
 };
 
-Equip.updateEquip = (id, data, result)=>{
-    removeOldImage(id);
-    sql.query("UPDATE equipment SET equip_name=?, img_url=?, amount=?, description=? WHERE id=?", 
-    [data.equip_name, data.img_url, data.amount, data.description, id], (err, res)=>{
-        if(err){
-            console.log("Error: " + err);
-            result(err, null);
-            return;
+Equip.updateEquip = (id, data, result) => {
+    // Check if img_url is provided, otherwise, it won't be updated
+    if (data.img_url) {
+        removeOldImage(id);
+    }
+
+    const updateFields = ['equip_name', 'amount', 'description'];
+    const updateValues = [data.equip_name, data.amount, data.description];
+
+    // Include img_url in updateFields and updateValues if provided
+    if (data.img_url) {
+        updateFields.push('img_url');
+        updateValues.push(data.img_url);
+    }
+
+    sql.query(
+        `UPDATE equipment SET ${updateFields.map(field => `${field}=?`).join(',')} WHERE id=?`, 
+        [...updateValues, id],
+        (err, res) => {
+            if (err) {
+                console.log("Error: " + err);
+                result(err, null);
+                return;
+            }
+            if (res.affectedRows == 0) {
+                // No record updated
+                result({ kind: "not_found" }, null);
+                return;
+            }
+            console.log("Update Equipment: " + { id: id, ...data });
+            result(null, { id: id, ...data });
         }
-        if(res.affectedRows == 0){
-            //NO any record update
-            result({kind: "not_found"}, null);
-            return;
-        }
-        console.log("Update Equipment: " + {id: id, ...data});
-        result(null, {id: id, ...data});
-        return;
-    });
+    );
 };
+
 Equip.removeEquip = (id, result)=>{
     removeOldImage(id);
     sql.query("DELETE FROM equipment WHERE id=?", [id], (err, res)=>{

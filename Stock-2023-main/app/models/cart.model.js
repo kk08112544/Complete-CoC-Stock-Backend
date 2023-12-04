@@ -12,91 +12,182 @@ const Cart = function(cart){
 }
 
 Cart.addCart=(addObj, result)=>{
-    sql.query("INSERT INTO cart SET ?", addObj, (err, res)=>{
-        if(err){
-            console.log("Query error: " + err);
-            result(err, null);
-            return;
-        }
-        result(null, {id:res.insertId, ...addObj});
-        console.log("Cart:", {id:res.insertid, ...addObj});
+  sql.query("SELECT * FROM equipment WHERE id=?",[addObj.equip_id], (err, res)=>{
+    let Total=res[0].amount-addObj.amount;
+    sql.query('UPDATE equipment SET amount=? WHERE id=?',[Total,addObj.equip_id],(err,res)=>{
+      if(err){
+        console.log("Query error: " + err);
+        result(err, null);
+        return;
+      }else{
+        sql.query("INSERT INTO cart SET ?", addObj, (err, res)=>{
+          if(err){
+              console.log("Query error: " + err);
+              result(err, null);
+              return;
+          }
+          result(null, {id:res.insertId, ...addObj});
+          console.log("Cart:", {id:res.insertid, ...addObj});
+        });
+      }
     });
+  });
 }
 
 
 
 Cart.getCartUser_Id = (user_id,result) =>{
-    sql.query(
-      "SELECT cart.id,cart.user_id,equipment.equip_name,cart.amount FROM cart INNER JOIN equipment ON cart.equip_id = equipment.id WHERE user_id=?",
-      [user_id],
-      (err, res) => {
-        if (err) {
-          console.log("Query error: " + err);
-          result(err, null);
-          return;
-        }
-        if (res.affectedRows == 0) {
-          //this user id not found
-          result({ kind: "not_found" }, null);
-          //Mistake return so sent more than one response
-          return;
-        }
-        console.log("Get Cart User Id: ", { user_id: user_id});
-        result(null, { Cart: res});
+  sql.query(
+    "SELECT cart.id,cart.user_id,cart.equip_id,equipment.equip_name,equipment.img_url,cart.amount FROM cart INNER JOIN equipment ON cart.equip_id = equipment.id WHERE user_id=?",
+    [user_id],
+    (err, res) => {
+      if (err) {
+        console.log("Query error: " + err);
+        result(err, null);
+        return;
       }
-    );
-  }
+      if (res.affectedRows == 0) {
+        //this user id not found
+        result({ kind: "not_found" }, null);
+        //Mistake return so sent more than one response
+        return;
+      }
+      console.log("Get Cart User Id: ", { user_id: user_id});
+      result(null, { Cart: res});
+    }
+  );
+}
+
+
 
 Cart.deleteCartById = (id,result)=>{
-    sql.query(
-        "DELETE FROM cart WHERE id = ?",
-        [id],
-        (err, res) => {
+    sql.query("SELECT * FROM cart WHERE id = ?",[id],(err,res)=>{
+      if (err) {
+        console.log("Query error: " + err);
+        result(err, null);
+        return;
+      }
+      let equipmentId=res[0].equip_id;
+      let cartAmount = res[0].amount;
+      sql.query("SELECT * FROM equipment WHERE id = ?",[equipmentId],(err,res)=>{
+        let equipmentAmount=res[0].amount;
+        let Total=equipmentAmount+cartAmount;
+        sql.query("UPDATE equipment SET amount=? WHERE id=?",[Total,equipmentId],(err,res)=>{
           if (err) {
             console.log("Query error: " + err);
             result(err, null);
             return;
           }
-          if (res.affectedRows == 0) {
-            //this user id not found
-            result({ kind: "not_found" }, null);
-            //Mistake return so sent more than one response
-            return;
-          }
-          console.log("Delete Cart Id: ", { id: id});
-          result(null, { id: id});
-        }
-      );
-}
-
-Cart.updateById = (id, newAmount, result)=>{
-    sql.query('SELECT * FROM cart WHERE id=?',[id],(err,res)=>{
-      if(err){
-        console.log("Query error: " + err);
-           result(err, null);
-           return;
-      }else{
-        if(res[0].amount==newAmount){
-          console.log("This Amount are Same new Amount");
-          res[0].message="current amount and new amount are same";
-          result(err,{Message:res[0].message});
-        }else{
-          sql.query('UPDATE cart SET amount=? WHERE id=?',[newAmount,id]
-              ,(err,res)=>{
+          sql.query(
+            "DELETE FROM cart WHERE id = ?",
+            [id],
+            (err, res) => {
               if (err) {
-                  console.log("Query error: " + err);
-                  result(err, null);
-                  return;
+                console.log("Query error: " + err);
+                result(err, null);
+                return;
               }
               if (res.affectedRows == 0) {
-                  result({ kind: "not_found" }, null);
-                  return;
+                //this user id not found
+                result({ kind: "not_found" }, null);
+                //Mistake return so sent more than one response
+                return;
               }
-              console.log("Updated Borrow Id: ", { id: id, Amount:newAmount });
-              result(null, { id: id, Amount:newAmount });
-          })
-        }
-      }
+              console.log("Delete Cart Id: ", { id: id});
+              result(null, { id: id});
+            }
+          );
+          
+        })
+      })
     })
 }
+
+Cart.updateById = (id, newAmount, result) => {
+  sql.query('SELECT * FROM cart WHERE id=?', [id], (err, cartRes) => {
+      if (err) {
+          console.log("Query error: " + err);
+          result(err, null);
+          return;
+      }
+
+      let equipId = cartRes[0].equip_id;
+      let cartAmount = cartRes[0].amount;
+
+      sql.query("SELECT * FROM equipment WHERE id=?", [equipId], (err, equipRes) => {
+          if (err) {
+              console.log("Query error: " + err);
+              result(err, null);
+              return;
+          }
+
+          let EquipAmount = equipRes[0].amount;
+          //let check=(cartAmount)
+          if (cartAmount === newAmount) {
+              console.log("This Amount are Same new Amount");
+              equipRes[0].message = "current amount and new amount are same";
+              result(null, { Message: equipRes[0].message });
+          } else if (cartAmount > newAmount) {
+              let check = (cartAmount-newAmount)+EquipAmount;
+              sql.query("UPDATE equipment SET amount=? WHERE id=?", [check,equipId], (err, equipUpdateRes) => {
+                  if (err) {
+                      console.log("Query error: " + err);
+                      result(err, null);
+                      return;
+                  }
+        
+                  sql.query('UPDATE cart SET amount=? WHERE id=?', [newAmount, id], (err, cartUpdateRes) => {
+                      if (err) {
+                          console.log("Query error: " + err);
+                          result(err, null);
+                          return;
+                      }
+        
+                      if (cartUpdateRes.affectedRows == 0) {
+                          result({ kind: "not_found" }, null);
+                          return;
+                      }
+        
+                      console.log("Updated Borrow Id: ", { id: id, Amount: newAmount });
+                      result(null, { id: id, Amount: newAmount });
+                  });
+              });
+          } else if (cartAmount < newAmount) {
+              let check = EquipAmount - (newAmount - cartAmount);
+              if(check<0){
+                console.log("Over Stock");
+                equipRes[0].message = "Over Stock";
+                result(null, { Message: equipRes[0].message });
+              }else{
+                sql.query("UPDATE equipment SET amount=? WHERE id=?", [check, equipId], (err, equipUpdateRes) => {
+                  if (err) {
+                      console.log("Query error: " + err);
+                      result(err, null);
+                      return;
+                  }
+        
+                  sql.query('UPDATE cart SET amount=? WHERE id=?', [newAmount, id], (err, cartUpdateRes) => {
+                      if (err) {
+                          console.log("Query error: " + err);
+                          result(err, null);
+                          return;
+                      }
+        
+                      if (cartUpdateRes.affectedRows == 0) {
+                          result({ kind: "not_found" }, null);
+                          return;
+                      }
+        
+                      console.log("Updated Borrow Id: ", { id: id, Amount: newAmount });
+                      result(null, { id: id, Amount: newAmount });
+                  });
+                });
+              }
+          }
+      });
+  });
+};
+
+
+
 module.exports = Cart;

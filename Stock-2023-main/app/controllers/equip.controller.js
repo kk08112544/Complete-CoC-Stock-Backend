@@ -28,32 +28,36 @@ const getAllEquip = (req,res)=>{
 };
 
 
-const updateEquipCtrl = (req, res)=>{
-    if(!req.body.equip_name || !req.body.img_url || !req.body.amount || !req.body.description){
-        res.status(400).send({message: "Content can not be empty."});
+const updateEquipCtrl = (req, res) => {
+    if (!req.body.equip_name || !req.body.amount || !req.body.description) {
+        res.status(400).send({ message: "Content can not be empty." });
+        return;
     }
+
     const data = {
         equip_name: req.body.equip_name,
-        img_url: req.body.img_url,
         amount: req.body.amount,
-        description:req.body.description
+        description: req.body.description
     };
-    Equip.updateEquip(req.params.id, data, (err, result)=>{
-        if(err){
-            if(err.kind == "not_found"){
-                res.status(401).send(
-                    {message: "Not found equipment: " + req.params.id}
-                    );
-            }else {
-                res.status(500).send(
-                    {message: "Error update equipment: " + req.params.id}
-                );
+
+    if (req.body.img_url) {
+        // Include img_url in data only if it is provided in the request body
+        data.img_url = req.body.img_url;
+    }
+
+    Equip.updateEquip(req.params.id, data, (err, result) => {
+        if (err) {
+            if (err.kind === "not_found") {
+                res.status(404).send({ message: "Not found equipment: " + req.params.id });
+            } else {
+                res.status(500).send({ message: "Error updating equipment: " + req.params.id });
             }
-        }else {
+        } else {
             res.send(result);
         }
     });
 };
+
 
 const getAllStock = (req,res)=>{
     Equip.getAllRecordsStock((err, data)=>{

@@ -14,56 +14,49 @@ const History = function(history){
 }
 
 History.addToHistory=(addObj, result)=>{
-    sql.query("SELECT * FROM equipment WHERE id=?",[addObj.equip_id], (err, res)=>{
-        if(err){
-            console.log("Query error: " + err);
-            result(err, null);
-            return;
-        }else{
-            if(addObj.amount>res[0].amount){
-                console.log("Your amount Very High");
-                res[0].message="Amount more than stock";
-                result(err,{Message:res[0].message});
-            }else{
-                let Total=res[0].amount-addObj.amount;
-                sql.query('UPDATE equipment SET amount=? WHERE id=?',[Total,addObj.equip_id],(err,res)=>{
-                   if(err){
-                    console.log("Query error: " + err);
-                    result(err, null);
-                    return;
-                   }else{
-                    sql.query("INSERT INTO borrow SET ?",addObj,(err,res)=>{
-                        if(err){
-                          console.log("Query error: " + err);
-                          result(err, null);
-                          return;
-                        }
-                        result(null, {...addObj});
-                        console.log("History:", {...addObj});
-                        sql.query(
-                          "DELETE FROM cart WHERE id = ?",
-                          [addObj.cart_id],
-                          (err, res) => {
-                            if (err) {
-                              console.log("Query error: " + err);
-                              result(err, null);
-                              return;
-                            }
-                            if (res.affectedRows == 0) {
-                              //this user id not found
-                              result({ kind: "not_found" }, null);
-                              //Mistake return so sent more than one response
-                              return;
-                            }
-                          }
-                        );
-                    })
-                   
-                   }
-                })
+          sql.query("INSERT INTO borrow SET ?",addObj,(err,res)=>{
+            if(err){
+              console.log("Query error: " + err);
+              result(err, null);
+              return;
             }
-        }
-    });
+            sql.query(
+              "DELETE FROM cart WHERE id = ?",
+              [addObj.cart_id],
+              (err, res) => {
+                if (err) {
+                  console.log("Query error: " + err);
+                  result(err, null);
+                  return;
+                }
+                if (res.affectedRows == 0) {
+                    //this user id not found
+                    result({ kind: "not_found" }, null);
+                            //Mistake return so sent more than one response
+                    return;
+                }
+              }
+          );
+            result(null, {...addObj});
+            console.log("History:", {...addObj});
+            // sql.query(
+            //     "DELETE FROM cart WHERE id = ?",
+            //     [addObj.cart_id],
+            //     (err, res) => {
+            //       if (err) {
+            //         console.log("Query error: " + err);
+            //         result(err, null);
+            //         return;
+            //       }
+            //       if (res.affectedRows == 0) {
+            //           //this user id not found
+            //           result({ kind: "not_found" }, null);
+            //                   //Mistake return so sent more than one response
+            //           return;
+            //       }
+            //     }
+            // );
+          });
 }
 History.getHistory_userId = (user_id,result) =>{
     sql.query(

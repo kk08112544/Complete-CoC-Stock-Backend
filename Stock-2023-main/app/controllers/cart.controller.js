@@ -43,7 +43,7 @@ const updateCartId = (req,res) => {
     res.status(400).send({ message: "Content can not be empty." });
   }
 
-    newAmount= req.body.amount;
+    let newAmount= req.body.amount;
     Cart.updateById(id, newAmount, (err, data) => {
       if (err) {
         if (err.kind == "not_found") {
